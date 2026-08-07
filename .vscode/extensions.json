@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    // Linting and formatting, matching the config in pyproject.toml.
+    "charliermarsh.ruff",
+    "ms-python.mypy-type-checker",
+    // The project is configured almost entirely through YAML and TOML.
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml"
+  ]
+}

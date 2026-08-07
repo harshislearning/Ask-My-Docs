@@ -1,0 +1,25 @@
+# Streamlit theming.
+#
+# The app is dark by default rather than following the viewer's system
+# preference: the interface is designed around a dark surface, and a white
+# background made the cards and badges wash out.
+#
+# These five values drive Streamlit's own widgets - tabs, inputs, sliders,
+# buttons, the sidebar. ui/theme.py styles everything else and layers on top of
+# them, so the two must agree.
+
+[theme]
+base = "dark"
+
+# Accent: tab underline, focus rings, slider, toggle, primary button.
+primaryColor = "#58a6ff"
+
+# Page and sidebar surfaces. Deep slate rather than pure black - black makes
+# every border a hard edge and is tiring to read against.
+backgroundColor = "#0d1117"
+secondaryBackgroundColor = "#161b22"
+
+textColor = "#e6edf3"
+
+[browser]
+gatherUsageStats = false

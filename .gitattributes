@@ -1,0 +1,12 @@
+# Normalise line endings so the repo is identical on Windows, macOS and the
+# Linux runner CI uses. Without this, a file written on Windows shows up as
+# entirely modified when anyone touches it elsewhere.
+* text=auto eol=lf
+
+# Batch files must keep CRLF - cmd.exe mis-parses LF-only scripts.
+*.bat text eol=crlf
+
+# Never touch binaries.
+*.pdf binary
+*.index binary
+*.pkl binary

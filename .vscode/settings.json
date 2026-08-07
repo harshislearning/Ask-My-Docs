@@ -1,0 +1,52 @@
+{
+  // Point VS Code at the project venv rather than whatever Python is on PATH.
+  // Without this, imports resolve against the wrong interpreter and Pylance
+  // reports errors that do not exist.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+
+  "python.analysis.typeCheckingMode": "standard",
+  // `tests` is on this list because test modules import `fixtures.*`, which
+  // conftest.py puts on sys.path at runtime. Pylance analyses statically and
+  // cannot see that, so without this every test file shows a phantom
+  // "Import 'fixtures' could not be resolved".
+  "python.analysis.extraPaths": ["${workspaceFolder}/src", "${workspaceFolder}/tests"],
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    },
+    // Matches line-length in pyproject.toml.
+    "editor.rulers": [100]
+  },
+
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.preferDaemon": true,
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/*.egg-info": true,
+    ".ci": true
+  },
+  "search.exclude": {
+    ".venv": true,
+    "data/**": true,
+    "eval/runs/**": true,
+    ".hf_cache": true
+  },
+
+  "yaml.schemas": {},
+  "files.associations": {
+    "*.jsonl": "jsonl"
+  }
+}

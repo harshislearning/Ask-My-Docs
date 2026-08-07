@@ -1,0 +1,53 @@
+# Environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Secrets
+.env
+
+# Local tool settings - machine-specific, not part of the project
+.claude/settings.local.json
+
+# Data & build artifacts (tracked only via .gitkeep)
+data/raw_pdfs/*
+!data/raw_pdfs/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/indexes/*
+!data/indexes/.gitkeep
+
+# Local model cache
+.cache/
+.hf_cache/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Eval outputs (baselines and golden sets ARE tracked; run outputs are not)
+eval/runs/*
+!eval/runs/.gitkeep
+eval/golden/drafts.jsonl
+
+# CI scratch: corpus and indexes are regenerated on every run
+.ci/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# VS Code: the shared run/debug setup is tracked, personal overrides are not.
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json

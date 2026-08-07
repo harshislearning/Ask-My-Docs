@@ -1,0 +1,70 @@
+{
+  "run_id": "ad349f728fa3",
+  "created_at": "2026-08-05T13:10:12.201807+00:00",
+  "golden_set": "eval\\golden\\ci_golden_set.jsonl",
+  "items_evaluated": 9,
+  "seconds": 16.0,
+  "generated": false,
+  "config": {
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "reranker_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "generation_model": "llama-3.3-70b-versatile",
+    "rerank_enabled": true,
+    "rerank_top_k": 6,
+    "rrf_k": 60,
+    "entailment_mode": "heuristic"
+  },
+  "golden_stats": {
+    "total": 9,
+    "answerable": 6,
+    "unanswerable": 3,
+    "with_must_contain": 3
+  },
+  "retrieval": {
+    "hit@1": 1.0,
+    "hit@10": 1.0,
+    "hit@3": 1.0,
+    "hit@5": 1.0,
+    "mrr": 1.0,
+    "ndcg@1": 1.0,
+    "ndcg@10": 1.0,
+    "ndcg@3": 1.0,
+    "ndcg@5": 1.0,
+    "precision@1": 1.0,
+    "precision@10": 0.1167,
+    "precision@3": 0.3889,
+    "precision@5": 0.2333,
+    "recall@1": 0.9167,
+    "recall@10": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  "reranked": {
+    "hit@1": 0.8333,
+    "hit@10": 1.0,
+    "hit@3": 1.0,
+    "hit@5": 1.0,
+    "mrr": 0.8889,
+    "ndcg@1": 0.8333,
+    "ndcg@10": 0.9167,
+    "ndcg@3": 0.9167,
+    "ndcg@5": 0.9167,
+    "precision@1": 0.8333,
+    "precision@10": 0.1167,
+    "precision@3": 0.3889,
+    "precision@5": 0.2333,
+    "recall@1": 0.75,
+    "recall@10": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  "generation": {},
+  "summary": {
+    "items": 9,
+    "recall@5": 1.0,
+    "mrr": 0.8889,
+    "ndcg@5": 0.9167
+  },
+  "baseline_written_at": "2026-08-05T13:10:12.208274+00:00",
+  "baseline_reason": "initial baseline from the synthetic CI corpus"
+}

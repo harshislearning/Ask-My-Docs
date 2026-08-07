@@ -1,0 +1,9 @@
+{"id":"ci001","question":"What is the default request timeout?","expected_answer":"Thirty seconds.","expected_sources":[{"source_file":"deployment_handbook.pdf","page":3},{"source_file":"config_reference.pdf","page":1}],"must_contain":[["30","thirty"]],"tags":["parameter","multi-source"]}
+{"id":"ci002","question":"How long is the health check timeout, and can it be changed?","expected_answer":"Five seconds, and it is not configurable.","expected_sources":[{"source_file":"deployment_handbook.pdf","page":3}],"must_contain":[["5","five"]],"tags":["parameter"]}
+{"id":"ci003","question":"What is the default for drain_timeout?","expected_answer":"120 seconds.","expected_sources":[{"source_file":"config_reference.pdf","page":1}],"must_contain":["120"],"tags":["table"]}
+{"id":"ci004","question":"What causes a deployment to roll back automatically?","expected_answer":"The error rate exceeding the configured budget for two consecutive evaluation windows.","expected_sources":[{"source_file":"deployment_handbook.pdf","page":1}],"tags":["prose"]}
+{"id":"ci005","question":"How much traffic does the canary stage receive?","expected_answer":"One percent.","expected_sources":[{"source_file":"deployment_handbook.pdf","page":2}],"tags":["prose","paraphrase"]}
+{"id":"ci006","question":"What went wrong during quarter close capacity planning?","expected_sources":[{"source_file":"field_notes.pdf","page":1}],"tags":["unstructured","page-fallback"]}
+{"id":"ci007","question":"What is the company's parental leave policy?","answerable":false,"tags":["unanswerable"]}
+{"id":"ci008","question":"Which cloud provider hosts the production cluster?","answerable":false,"tags":["unanswerable","near-miss"]}
+{"id":"ci009","question":"How do I request a new laptop?","answerable":false,"tags":["unanswerable"]}

@@ -1,0 +1,172 @@
+# Single source of truth for every tunable in the system.
+# Override any value with env vars: ASKMYDOCS_<SECTION>__<FIELD> (see .env.example).
+# Values for phases not yet built are present so the whole design is visible in one place.
+
+paths:
+  raw_pdfs: data/raw_pdfs
+  processed: data/processed
+  indexes: data/indexes
+  chunks_file: data/processed/chunks.jsonl
+  manifest_file: data/processed/manifest.json
+
+logging:
+  level: INFO
+  format: console # console | json  (CI and the API should use json)
+
+ingestion:
+  # A page yielding fewer than this many characters is treated as image-only.
+  scanned_page_char_threshold: 50
+  # If this fraction of a document's pages look scanned, skip the whole document.
+  scanned_doc_page_ratio: 0.8
+  # A line repeating at the same vertical position on at least this fraction of
+  # pages is header/footer furniture and gets dropped before chunking.
+  furniture_page_ratio: 0.6
+  # Only lines in the top/bottom N% of the page are furniture candidates.
+  furniture_margin_ratio: 0.12
+  # ...and only short ones. Headers and footers are short by nature; without
+  # this, a body paragraph that happens to sit high on every page gets eaten.
+  furniture_max_chars: 120
+  extract_tables: true
+  # Skip files larger than this; a 500MB scan is almost never a real KB doc.
+  max_file_mb: 100
+
+structure:
+  # A line qualifies as a heading if its font is this many times larger than the
+  # document's modal body font size...
+  heading_size_ratio: 1.15
+  # ...or it is bold and short, or matches a numbered-heading pattern.
+  heading_max_words: 12
+  bold_qualifies_as_heading: true
+  numbered_heading_patterns:
+    - '^\d+(\.\d+)*[\.\)]?\s+\S'
+    - '^(Chapter|Section|Part|Appendix)\s+([0-9]+|[A-Z])\b'
+    - '^[A-Z][A-Z0-9 \-/&]{3,}$'
+  # Below this many detected headings per page, the document is considered
+  # unstructured and falls back to page-bounded splitting.
+  min_headings_per_page: 0.33
+  max_heading_depth: 4
+
+chunking:
+  # bge-base-en-v1.5 truncates hard at 512 tokens. 450 leaves room for the
+  # breadcrumb prefix added to embed_text.
+  chunk_tokens: 450
+  chunk_overlap_tokens: 60
+  # Sections shorter than this are merged into the next sibling so retrieval is
+  # not flooded with one-line fragments.
+  min_section_tokens: 80
+  # Tables are never split mid-table, even if they exceed chunk_tokens.
+  keep_tables_atomic: true
+  # Prefix embed_text with "Doc title > Section > Subsection".
+  prepend_breadcrumb: true
+  separators: ["\n\n", "\n", ". ", "; ", " "]
+  tokenizer_model: BAAI/bge-base-en-v1.5
+
+# ---- Phases 2-9: declared now, wired up in their phase ----
+
+embedding:
+  model: BAAI/bge-base-en-v1.5
+  batch_size: 32
+  normalize: true
+  # bge models expect this prefix on queries only, not on documents.
+  query_prefix: "Represent this sentence for searching relevant passages: "
+  device: auto # auto | cpu | cuda
+
+retrieval:
+  # Candidates pulled from each index independently before fusion.
+  vector_top_n: 30
+  bm25_top_n: 30
+  # RRF damping. Larger k flattens the contribution of top ranks; 60 is the
+  # value from the original RRF paper and a sane default.
+  rrf_k: 60
+  vector_weight: 1.0
+  bm25_weight: 1.0
+  # Okapi BM25 term-frequency saturation and length normalisation.
+  bm25_k1: 1.5
+  bm25_b: 0.75
+  # Cross-encoder reranking of the fused pool. Disable to measure how much it
+  # actually contributes on your corpus.
+  rerank_enabled: true
+  # How many chunks survive to the generation prompt.
+  rerank_top_k: 6
+  reranker_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  rerank_batch_size: 32
+  rerank_max_length: 512
+  # ms-marco cross-encoders emit raw logits, not probabilities: ~0 is the
+  # relevant/not-relevant boundary. null keeps top_k regardless of score.
+  min_rerank_score: null
+
+generation:
+  model: llama-3.3-70b-versatile
+  # Low but not zero: near-deterministic answers without the degenerate
+  # repetition greedy decoding sometimes produces on long citations.
+  temperature: 0.1
+  max_tokens: 1024
+  request_timeout_s: 60
+  # Groq rate-limits aggressively on free tiers; these back off politely.
+  max_retries: 4
+  retry_base_delay_s: 1.0
+  retry_max_delay_s: 20.0
+  # Ceiling on the SOURCES block. Lowest-ranked sources are dropped first.
+  max_context_tokens: 6000
+  # The exact string the model is told to emit when the sources fall short.
+  # Verification and eval both key off it, so change it in one place only.
+  refusal_text: "I don't have enough information in the provided sources to answer that."
+
+verification:
+  enabled: true
+  # off       - structural checks only (valid citations, claim coverage)
+  # heuristic - plus lexical grounding: every number and identifier in a claim
+  #             must appear in the source it cites. Free, offline, deterministic.
+  # llm       - plus one batched Groq call to adjudicate what the lexical layer
+  #             cannot resolve. Catches paraphrased contradictions; costs a call
+  #             per answer and makes results non-deterministic, so CI pins
+  #             `heuristic` via config/test.yaml.
+  entailment_mode: "heuristic" # quoted: bare off is YAML false
+  flag_uncited_claims: true
+  # Sentences shorter than this are fragments, not claims worth citing.
+  min_claim_words: 3
+  # Identifiers shorter than this are too common to be evidence.
+  min_identifier_length: 4
+  # Ceiling on claims sent to the LLM judge in one batch, to bound tokens.
+  entailment_max_claims: 12
+
+evaluation:
+  golden_set: eval/golden/golden_set.jsonl
+  baseline_file: eval/baselines/metrics_baseline.json
+  runs_dir: eval/runs
+  k_values: [1, 3, 5, 10]
+  # RAGAS adds LLM-judged faithfulness and answer relevance. Off by default:
+  # it costs API calls per item and its scores are not reproducible, which
+  # makes it a poor thing to gate a build on.
+  use_ragas: false
+  ragas_metrics: [faithfulness, answer_relevancy]
+
+  # What the CI build fails on. `max_drop` is how far a metric may move in the
+  # bad direction before the gate trips - a tolerance, not an absolute floor,
+  # so it keeps meaning as the system improves.
+  #
+  # These are deliberately loose starting values. Tighten them once you have
+  # run the harness a few times on your own corpus and know how much the
+  # numbers move on their own: a gate that fires on noise gets switched off.
+  gates:
+    # Retrieval is the ceiling on everything downstream. Measured after
+    # reranking, because that is what actually reaches the model.
+    - metric: reranked.recall@5
+      max_drop: 0.05
+    - metric: reranked.mrr
+      max_drop: 0.05
+    - metric: reranked.ndcg@5
+      max_drop: 0.05
+    # A fabricated citation is a defect, not a regression in degree - so the
+    # tolerance here is much tighter than for a ranking metric.
+    - metric: generation.citation_precision
+      max_drop: 0.01
+    - metric: generation.citation_recall
+      max_drop: 0.05
+    - metric: generation.groundedness
+      max_drop: 0.05
+    # Answering a question the documents cannot support is the failure that
+    # actively misleads people. Any increase fails.
+    - metric: refusal.wrongly_answered
+      max_drop: 0
+      higher_is_better: false

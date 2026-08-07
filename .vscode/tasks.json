@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Tests",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "pytest", "-q"],
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint and types",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "ruff", "check", "."],
+      "group": "build",
+      "problemMatcher": [],
+      "dependsOrder": "sequence",
+      "dependsOn": ["Types"]
+    },
+    {
+      "label": "Types",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["-m", "mypy"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Ingest and index",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["scripts/ingest.py"],
+      "problemMatcher": [],
+      "dependsOrder": "sequence",
+      "dependsOn": [],
+      // Chained so the index is never left stale behind fresh chunks.
+      "runOptions": { "instanceLimit": 1 }
+    },
+    {
+      "label": "Build indexes",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "args": ["scripts/build_index.py"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Full check (lint, types, tests)",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Lint and types", "Tests"],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # Keep model downloads inside the workspace so actions/cache can see them.
+  HF_HOME: ${{ github.workspace }}/.hf_cache
+  HF_HUB_DISABLE_TELEMETRY: "1"
+  # Machine-readable logs; the console renderer's colour codes are noise here.
+  ASKMYDOCS_LOGGING__FORMAT: json
+
+jobs:
+  quality:
+    name: Lint, types, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv pip install --system -e ".[dev,ml]"
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Mypy
+        run: mypy
+
+      - name: Tests
+        # No network and no API key: every model and the LLM are injected fakes.
+        run: pytest -q --cov=askmydocs --cov-report=term-missing
+
+  eval-gate:
+    name: Evaluation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        # No `llm` or `serve` extras: the gate runs retrieval-only, so it needs
+        # neither an API key nor a web stack.
+        run: uv pip install --system -e ".[dev,ml]"
+
+      - name: Cache embedding and reranker models
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HF_HOME }}
+          # bge-base and ms-marco-MiniLM are ~500MB together and never change,
+          # so the key is the model names rather than a lockfile hash.
+          key: hf-bge-base-en-v1.5-ms-marco-MiniLM-L-6-v2-v1
+
+      - name: Build the CI corpus
+        run: python scripts/make_ci_corpus.py --output .ci/raw_pdfs
+
+      - name: Ingest
+        run: >
+          python scripts/ingest.py
+          --input .ci/raw_pdfs
+          --config config/ci.yaml
+          --log-format json
+
+      - name: Build indexes
+        run: python scripts/build_index.py --config config/ci.yaml --log-format json
+
+      - name: Check for regressions
+        # --no-generate keeps this deterministic and free: retrieval metrics
+        # only, no Groq call, no key in CI.
+        run: >
+          python scripts/check_regression.py
+          --config config/ci.yaml
+          --no-generate
+
+      - name: Upload the run artifact
+        # Uploaded on failure too - the per-item records are what explain which
+        # question caused an aggregate to move.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-run
+          path: eval/runs/
+          retention-days: 14
+          if-no-files-found: ignore
