@@ -11,6 +11,11 @@ env:
   HF_HUB_DISABLE_TELEMETRY: "1"
   # Machine-readable logs; the console renderer's colour codes are noise here.
   ASKMYDOCS_LOGGING__FORMAT: json
+  # Matches .python-version. uv installs this itself, so the job never depends
+  # on whatever Python the runner image happens to ship - which is how the
+  # first run of this workflow failed: the image had 3.13, and pyproject.toml
+  # requires <3.13.
+  PYTHON_VERSION: "3.11"
 
 jobs:
   quality:
@@ -18,24 +23,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          # Without this uv warns that the cache can never be invalidated,
+          # because there is no lockfile or requirements.txt to key on.
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python and the virtualenv
+        run: |
+          uv python install ${{ env.PYTHON_VERSION }}
+          uv venv --python ${{ env.PYTHON_VERSION }}
 
       - name: Install
-        run: uv pip install --system -e ".[dev,ml]"
+        run: uv pip install -e ".[dev,ml]"
 
       - name: Ruff
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Mypy
-        run: mypy
+        run: uv run mypy
 
       - name: Tests
         # No network and no API key: every model and the LLM are injected fakes.
-        run: pytest -q --cov=askmydocs --cov-report=term-missing
+        run: uv run pytest -q --cov=askmydocs --cov-report=term-missing
 
   eval-gate:
     name: Evaluation gate
@@ -43,16 +56,22 @@ jobs:
     timeout-minutes: 30
     needs: quality
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python and the virtualenv
+        run: |
+          uv python install ${{ env.PYTHON_VERSION }}
+          uv venv --python ${{ env.PYTHON_VERSION }}
 
       - name: Install
         # No `llm` or `serve` extras: the gate runs retrieval-only, so it needs
         # neither an API key nor a web stack.
-        run: uv pip install --system -e ".[dev,ml]"
+        run: uv pip install -e ".[dev,ml]"
 
       - name: Cache embedding and reranker models
         uses: actions/cache@v4
@@ -63,23 +82,23 @@ jobs:
           key: hf-bge-base-en-v1.5-ms-marco-MiniLM-L-6-v2-v1
 
       - name: Build the CI corpus
-        run: python scripts/make_ci_corpus.py --output .ci/raw_pdfs
+        run: uv run python scripts/make_ci_corpus.py --output .ci/raw_pdfs
 
       - name: Ingest
         run: >
-          python scripts/ingest.py
+          uv run python scripts/ingest.py
           --input .ci/raw_pdfs
           --config config/ci.yaml
           --log-format json
 
       - name: Build indexes
-        run: python scripts/build_index.py --config config/ci.yaml --log-format json
+        run: uv run python scripts/build_index.py --config config/ci.yaml --log-format json
 
       - name: Check for regressions
         # --no-generate keeps this deterministic and free: retrieval metrics
         # only, no Groq call, no key in CI.
         run: >
-          python scripts/check_regression.py
+          uv run python scripts/check_regression.py
           --config config/ci.yaml
           --no-generate
 
