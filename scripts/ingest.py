@@ -31,6 +31,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Re-parse every document, ignoring the unchanged-file cache",
     )
+    parser.add_argument(
+        "--ignore-failures",
+        action="store_true",
+        help=(
+            "Exit 0 even if some documents could not be parsed. Use when a few "
+            "unreadable files in a large corpus are expected and the run should "
+            "still count as a success."
+        ),
+    )
     parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     parser.add_argument("--log-format", choices=["console", "json"])
     return parser
@@ -55,8 +64,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest = pipeline.run(Path(args.input) if args.input else None, force=args.force)
 
     _print_report(manifest)
-    # Failures are worth a non-zero exit so CI notices; skips are expected.
-    return 1 if manifest.by_status(DocumentStatus.FAILED) else 0
+
+    # A document that could not be parsed is worth a non-zero exit so a
+    # scripted caller notices. Skips (scanned, encrypted, too large) are an
+    # expected outcome and never fail the run - they are reported instead.
+    failed = manifest.by_status(DocumentStatus.FAILED)
+    return 1 if failed and not args.ignore_failures else 0
 
 
 def _print_report(manifest: IngestionManifest) -> None:

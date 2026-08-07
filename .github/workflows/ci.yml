@@ -87,10 +87,14 @@ jobs:
         run: uv run python scripts/make_ci_corpus.py --output .ci/raw_pdfs
 
       - name: Ingest
+        # --ignore-failures because the corpus deliberately includes a corrupt
+        # PDF and a scanned one, to prove ingestion survives both. Without it
+        # the step fails every run on a file that is broken on purpose.
         run: >
           uv run python scripts/ingest.py
           --input .ci/raw_pdfs
           --config config/ci.yaml
+          --ignore-failures
           --log-format json
 
       - name: Build indexes
