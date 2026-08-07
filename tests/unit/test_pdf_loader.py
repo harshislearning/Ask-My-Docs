@@ -11,6 +11,17 @@ from askmydocs.models import Line, TableBlock
 from fixtures import pdf_factory as pf
 
 
+def all_text(document) -> str:  # type: ignore[no-untyped-def]
+    """Every extracted line joined into one string.
+
+    Assertions about *content* should use this rather than searching individual
+    lines: line breaks are a rendering detail that varies across platforms and
+    PyMuPDF versions, and a phrase split across two lines is still present in
+    the document.
+    """
+    return " ".join(line.text for line in document.lines())
+
+
 def test_doc_id_is_content_derived(tmp_path: Path) -> None:
     first = pf.structured_pdf(tmp_path / "a.pdf")
     renamed = tmp_path / "renamed.pdf"
@@ -29,8 +40,11 @@ def test_extracts_lines_with_font_metadata(tmp_path: Path, config: AppConfig) ->
     lines = document.lines()
     assert lines
 
+    # Match on a single word, never a phrase: text is laid out by the PDF
+    # renderer, and where it wraps can differ between platforms and PyMuPDF
+    # builds. A phrase assertion breaks the moment a line break lands inside it.
     title = next(line for line in lines if line.text.startswith("Deployment Handbook"))
-    body = next(line for line in lines if "deployment service" in line.text)
+    body = next(line for line in lines if "coordinates" in line.text.lower())
     assert title.size > body.size
     assert title.is_bold
     assert not body.is_bold
@@ -48,7 +62,7 @@ def test_repeating_headers_and_footers_are_stripped(tmp_path: Path, config: AppC
 
     assert not any("Confidential" in t for t in texts)
     assert not any(t.startswith("Page ") and " of " in t for t in texts)
-    assert any("Body content describing" in t for t in texts)
+    assert "Body content describing" in all_text(document)
 
 
 def test_repeated_body_text_away_from_the_margins_survives(
@@ -57,8 +71,12 @@ def test_repeated_body_text_away_from_the_margins_survives(
     # The body line is identical on all six pages. Repetition alone must not
     # strip it - only position in the margin makes something furniture.
     document = load_pdf(pf.paged_pdf_with_furniture(tmp_path / "doc.pdf"), config.ingestion)
-    kept = [line.text for line in document.lines() if "service behaviour" in line.text]
-    assert len(kept) == 6
+    # One surviving copy per page, counted by page rather than by line so a
+    # wrapped line does not read as two hits.
+    pages_with_body = {
+        line.page_no for line in document.lines() if "service" in line.text.lower()
+    }
+    assert pages_with_body == {1, 2, 3, 4, 5, 6}
 
 
 def test_page_opening_lines_are_not_stripped_as_furniture(
@@ -74,7 +92,7 @@ def test_page_opening_lines_are_not_stripped_as_furniture(
     path = pf.make_pdf(tmp_path / "doc.pdf", [[pf.Text(boilerplate)] for _ in range(6)])
 
     document = load_pdf(path, config.ingestion)
-    assert any("obliged to restate" in line.text for line in document.lines())
+    assert "obliged to restate" in all_text(document)
 
 
 def test_tables_become_markdown_blocks(tmp_path: Path, config: AppConfig) -> None:

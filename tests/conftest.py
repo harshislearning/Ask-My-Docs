@@ -36,9 +36,16 @@ def word_token_counter() -> Callable[[str], int]:
 
 @pytest.fixture
 def config(tmp_path: Path) -> AppConfig:
-    """Test config with every path redirected into a temp directory."""
+    """Test config with every path redirected into a temp directory.
+
+    ``groq_api_key`` is overridden with a placeholder. Pydantic Settings reads
+    the real ``.env``, and a config object appears in full in every pytest
+    failure report - so without this, one failing test prints a live API key
+    into the terminal, and into the CI log of a public repository.
+    """
     return load_config(
         TEST_CONFIG_FILE,
+        groq_api_key="test-key-not-real",
         paths={
             "raw_pdfs": tmp_path / "raw_pdfs",
             "processed": tmp_path / "processed",

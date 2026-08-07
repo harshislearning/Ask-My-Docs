@@ -28,17 +28,12 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-          # Without this uv warns that the cache can never be invalidated,
-          # because there is no lockfile or requirements.txt to key on.
-          cache-dependency-glob: "pyproject.toml"
-
-      - name: Set up Python and the virtualenv
-        run: |
-          uv python install ${{ env.PYTHON_VERSION }}
-          uv venv --python ${{ env.PYTHON_VERSION }}
 
       - name: Install
-        run: uv pip install -e ".[dev,ml]"
+        # uv.lock pins every transitive dependency, so CI runs the exact
+        # versions development ran against. Without it CI resolves fresh
+        # releases and "works on my machine" becomes a real failure mode.
+        run: uv sync --extra dev --extra ml
 
       - name: Ruff
         run: uv run ruff check .
@@ -48,7 +43,20 @@ jobs:
 
       - name: Tests
         # No network and no API key: every model and the LLM are injected fakes.
-        run: uv run pytest -q --cov=askmydocs --cov-report=term-missing
+        run: uv run pytest -q --cov=askmydocs --cov-report=term-missing | tee pytest.log
+
+      - name: Surface test failures
+        # Run logs need admin rights to download; step summaries are public.
+        # Without this, a failing test on a platform you cannot reproduce is
+        # invisible to anyone without write access to the repository.
+        if: failure()
+        run: |
+          {
+            echo '## Test failures'
+            echo '```'
+            tail -n 80 pytest.log 2>/dev/null || echo '(no pytest output captured)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   eval-gate:
     name: Evaluation gate
@@ -61,17 +69,11 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
-
-      - name: Set up Python and the virtualenv
-        run: |
-          uv python install ${{ env.PYTHON_VERSION }}
-          uv venv --python ${{ env.PYTHON_VERSION }}
 
       - name: Install
         # No `llm` or `serve` extras: the gate runs retrieval-only, so it needs
         # neither an API key nor a web stack.
-        run: uv pip install -e ".[dev,ml]"
+        run: uv sync --extra dev --extra ml
 
       - name: Cache embedding and reranker models
         uses: actions/cache@v4
