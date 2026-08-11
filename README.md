@@ -10,7 +10,19 @@ a Streamlit front end and gated by an automated evaluation suite in CI.
 >
 > - **[What this is, in plain language](docs/PROJECT_EXPLAINED.md)** — start here
 > - [How it was built, phase by phase](docs/BUILD_LOG.md) — the engineering log
+---
 
+## ScreenShots
+
+<img width="1896" height="897" alt="Screenshot 2026-08-11 123718" src="https://github.com/user-attachments/assets/fe7f1d3c-c13b-486b-804f-bd2ede116b75" />
+<img width="1891" height="872" alt="Screenshot 2026-08-11 124033" src="https://github.com/user-attachments/assets/dcff0a69-e9c4-45c4-b332-4176372fe0c9" />
+<img width="1917" height="886" alt="Screenshot 2026-08-11 124354" src="https://github.com/user-attachments/assets/73aec530-56bc-4c31-a898-f7c007ba6906" />
+<img width="1883" height="847" alt="Screenshot 2026-08-11 124557" src="https://github.com/user-attachments/assets/ef14a32a-d34b-47a6-832e-40505a36a3b3" />
+
+
+
+
+```
 ---
 
 ## Architecture
