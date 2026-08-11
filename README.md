@@ -10,6 +10,7 @@ a Streamlit front end and gated by an automated evaluation suite in CI.
 >
 > - **[What this is, in plain language](docs/PROJECT_EXPLAINED.md)** — start here
 > - [How it was built, phase by phase](docs/BUILD_LOG.md) — the engineering log
+
 ---
 
 ## ScreenShots
@@ -22,7 +23,7 @@ a Streamlit front end and gated by an automated evaluation suite in CI.
 
 
 
-```
+---
 ---
 
 ## Architecture
