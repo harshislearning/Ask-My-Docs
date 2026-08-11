@@ -20,10 +20,6 @@ a Streamlit front end and gated by an automated evaluation suite in CI.
 <img width="1917" height="886" alt="Screenshot 2026-08-11 124354" src="https://github.com/user-attachments/assets/73aec530-56bc-4c31-a898-f7c007ba6906" />
 <img width="1883" height="847" alt="Screenshot 2026-08-11 124557" src="https://github.com/user-attachments/assets/ef14a32a-d34b-47a6-832e-40505a36a3b3" />
 
-
-
-
----
 ---
 
 ## Architecture
